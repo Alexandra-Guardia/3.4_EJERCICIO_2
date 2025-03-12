@@ -1,0 +1,90 @@
+#   Codigo que implementa el esquema numerico 
+#   del metodo iterativo de Gauss-Seidel para
+#   resolver sistemas de ecuaciones
+#
+#           Autor:
+#   María Alexandra Guardia Canche 
+#   alexandra.guardia.25@gmail.com
+#   Version 1.0 : 12/03/2025
+#
+import numpy as np
+import matplotlib.pyplot as plt
+import csv
+
+def gauss_seidel(A, b, tol=1e-6, max_iter=100):
+    n = len(b)
+    x = np.zeros(n)  # Inicializamos las incógnitas (T1, T2, T3, T4, T5)
+    x_prev = np.copy(x)
+    errors = []
+    
+    print("Iter |", " | ".join([f"x[{i}]" for i in range(n)]), "| Error absoluto | Error relativo | Error cuadrático")
+    print("-" * 100)
+    
+    for k in range(max_iter):
+        for i in range(n):
+            sum1 = sum(A[i][j] * x[j] for j in range(i))
+            sum2 = sum(A[i][j] * x_prev[j] for j in range(i + 1, n))
+            x[i] = (b[i] - sum1 - sum2) / A[i][i]
+        
+        abs_error = np.linalg.norm(x - x_prev, ord=np.inf)
+        rel_error = abs_error / (np.linalg.norm(x, ord=np.inf) + 1e-10)
+        quad_error = np.linalg.norm(x - x_prev) ** 2
+        
+        errors.append((k + 1, abs_error, rel_error, quad_error))
+        
+        print(f"{k + 1:4d} |", " | ".join([f"{val:.6f}" for val in x]), f"| {abs_error:.2e} | {rel_error:.2e} | {quad_error:.2e}")
+        
+        if abs_error < tol:
+            break
+        
+        x_prev = np.copy(x)
+    
+    return x, errors
+
+# Nueva matriz A y vector b para el sistema de ecuaciones con 5 incógnitas
+A = np.array([
+    [20, -5, -3, 0, 0],
+    [-4, 18, -2, -1, 0],
+    [-3, -1, 22, -5, 0],
+    [0, -2, -4, 25, -1],
+    [0, 0, 0, 0, 1]  # Agregamos la ecuación para T5 (que es solo T5 = 0, asumido como 0)
+])
+
+b = np.array([100, 120, 130, 150, 0])  # Valor de T5 asumido como 0
+
+# Solución aproximada usando Gauss-Seidel
+x_sol, errors = gauss_seidel(A, b)
+
+# Mostrar la solución aproximada
+print("\nSolución aproximada:")
+for i, val in enumerate(x_sol):
+    print(f"T[{i+1}] = {val:.6f}")
+
+# Guardar los errores y la solución en un archivo CSV
+with open("errors.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["Iteración", "Error absoluto", "Error relativo", "Error cuadrático"])
+    writer.writerows(errors)
+    writer.writerow([])
+    writer.writerow(["Solución aproximada"])
+    for val in x_sol:
+        writer.writerow([val])
+
+# Graficar los errores
+iterations = [e[0] for e in errors]
+abs_errors = [e[1] for e in errors]
+rel_errors = [e[2] for e in errors]
+quad_errors = [e[3] for e in errors]
+
+plt.figure(figsize=(10, 5))
+plt.plot(iterations, abs_errors, label="Error absoluto")
+plt.plot(iterations, rel_errors, label="Error relativo")
+plt.plot(iterations, quad_errors, label="Error cuadrático")
+plt.yscale("log")
+plt.xlabel("Iteraciones")
+plt.ylabel("Errores")
+plt.title("Convergencia del método de Gauss-Seidel")
+plt.legend()
+plt.grid()
+plt.savefig("convergencia_gauss_seidel.png")
+plt.show()
